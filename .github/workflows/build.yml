@@ -22,17 +22,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
           push: true
+          platforms: linux/amd64
           tags: ghcr.io/${{ github.repository }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
