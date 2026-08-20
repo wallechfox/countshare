@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  countshare:
+    build: .
+    container_name: countshare
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./files:/files
+      - ./app.js:/app/app.js
+      - ./public:/app/public
+      - countshare-data:/data
+    environment:
+      - ADMIN_PATH=my-secret-admin
+    restart: unless-stopped
+
+volumes:
+  countshare-data:
