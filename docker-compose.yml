@@ -1,14 +1,13 @@
 version: "3.8"
+
 services:
   countshare:
-    build: .
+    image: ghcr.io/wallechfox/countshare:latest
     container_name: countshare
     ports:
       - "8000:8000"
     volumes:
-      - ./files:/files
-      - ./app.js:/app/app.js
-      - ./public:/app/public
+      - /www/countshare/files:/files
       - countshare-data:/data
     environment:
       - ADMIN_PATH=my-secret-admin
