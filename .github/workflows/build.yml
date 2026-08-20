@@ -3,8 +3,6 @@ name: Build and Push to GHCR
 on:
   push:
     branches: [ "main" ]
-  release:
-    types: [ published ]
 
 jobs:
   build-and-push:
@@ -29,24 +27,11 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
 
-      - name: Build and push (latest)
-        if: github.ref == 'refs/heads/main'
+      - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
-          labels: ${{ steps.meta.outputits.labels }}
-
-      - name: Build and push (release tag)
-        if: github.event_name == 'release'
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
           labels: ${{ steps.meta.outputs.labels }}
