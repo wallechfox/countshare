@@ -47,7 +47,9 @@ restart: unless-stopped
 volumes:
 countshare-data:
 
-启动后：
+
+
+##启动后：
 
 1. 把要分享的文件放入 `./files/` 目录
 2. 浏览器访问 `http://你的服务器IP:8000` 查看下载页
