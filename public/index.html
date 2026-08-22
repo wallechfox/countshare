@@ -4,17 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{PAGE_TITLE}}</title>
+<meta property="og:title" content="{{OG_TITLE}}">
+<meta property="og:description" content="CountShare 极简文件分享">
+<meta property="og:type" content="website">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:#fafafa; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; color:#1a1a1a; }
 .container { background:white; border:1px solid #eaeaea; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04); padding:56px 48px; max-width:480px; width:100%; text-align:center; }
 .icon { font-size:40px; margin-bottom:20px; }
 h1 { font-size:18px; font-weight:600; color:#1a1a1a; margin-bottom:6px; word-break:break-all; line-height:1.4; }
-.size { color:#888; font-size:13px; margin-bottom:28px; }
-.count { display:inline-flex; align-items:center; gap:6px; color:#555; font-size:13px; margin-bottom:32px; padding:4px 12px; background:#f5f5f5; border-radius:6px; }
+.size { color:#888; font-size:13px; margin-bottom:16px; }
+.tags { margin-bottom:20px; }
+.tag { display:inline-block; font-size:12px; color:#555; background:#f5f5f5; padding:4px 10px; border-radius:6px; margin:0 4px 6px 0; }
+.count { display:inline-flex; align-items:center; gap:6px; color:#555; font-size:13px; margin-bottom:28px; padding:4px 12px; background:#f5f5f5; border-radius:6px; }
 .btn { display:inline-block; background:#2563eb; color:white; padding:12px 40px; border-radius:8px; text-decoration:none; font-size:15px; font-weight:500; transition:background .15s; }
 .btn:hover { background:#1d4ed8; }
-.footer { margin-top:36px; color:#bbb; font-size:11px; letter-spacing:.5px; }
+.footer { margin-top:32px; color:#bbb; font-size:11px; letter-spacing:.5px; }
 .multi-list { text-align:left; }
 .multi-list .item { display:flex; align-items:center; padding:14px 16px; border:1px solid #eee; border-radius:10px; margin-bottom:10px; }
 .multi-list .item .ico { font-size:24px; margin-right:14px; }
