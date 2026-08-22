@@ -6,34 +6,31 @@
 <title>下载详情 - CountShare</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; background:#fafafa; padding:40px 20px; color:#1a1a1a; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; background:#fafafa; padding:30px 18px; color:#1a1a1a; }
 .container { max-width:960px; margin:0 auto; }
-h2 { font-size:15px; font-weight:600; color:#333; margin:0 0 14px 4px; }
-.panel { background:white; border:1px solid #eaeaea; border-radius:10px; padding:24px; margin-bottom:20px; overflow-x:auto; }
+h2 { font-size:15px; font-weight:600; color:#333; margin:0 0 12px 4px; }
+.panel { background:white; border:1px solid #eaeaea; border-radius:10px; padding:20px; margin-bottom:18px; overflow-x:auto; }
 table { width:100%; border-collapse:collapse; }
-th,td { padding:10px 12px; border-bottom:1px solid #f3f3f3; font-size:13px; text-align:left; }
+th,td { padding:9px 11px; border-bottom:1px solid #f3f3f3; font-size:13px; text-align:left; }
 th { background:#fafafa; color:#666; font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
 tr:last-child td { border-bottom:none; }
-.ua { max-width:320px; word-break:break-all; font-size:11px; color:#999; }
-.empty { color:#bbb; font-size:13px; padding:12px 0; }
-.red { color:#d33; font-weight:500; }
-.act-btn { background:#2563eb; color:white; border:none; padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer; margin-right:4px; }
-.act-btn:hover { background:#1d4ed8; }
-.filter-bar { font-size:13px; color:#555; margin-bottom:10px; }
-.filter-bar a { color:#2563eb; cursor:pointer; text-decoration:underline; }
-
-/* 弹窗 */
-.modal-mask { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); align-items:center; justify-content:center; z-index:50; }
+.red { color:#b91c1c; }
+.empty { color:#bbb; font-size:13px; padding:10px 0; }
+.ua { max-width:300px; word-break:break-all; font-size:11px; color:#999; }
+.linkbtn { background:transparent; border:0; color:#2563eb; cursor:pointer; font-size:13px; padding:2px 6px; }
+.linkbtn:hover { text-decoration:underline; }
+/* 设置弹窗 */
+.modal-mask { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); align-items:center; justify-content:center; z-index:999; }
 .modal-mask.show { display:flex; }
-.modal { background:white; border-radius:12px; padding:28px 32px; width:420px; max-width:92vw; box-shadow:0 8px 30px rgba(0,0,0,.15); }
-.modal h3 { font-size:16px; margin-bottom:18px; }
-.modal label { display:block; font-size:13px; color:#555; margin:12px 0 4px; }
-.modal input { width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
-.modal .hint { font-size:11px; color:#999; margin-top:3px; }
-.modal .actions { margin-top:22px; display:flex; gap:10px; justify-content:flex-end; }
-.modal .actions button { padding:8px 20px; border-radius:8px; font-size:14px; cursor:pointer; border:none; }
-.modal .actions .save { background:#2563eb; color:white; }
-.modal .actions .cancel { background:#f0f0f0; color:#333; }
+.modal { background:white; border-radius:12px; padding:24px; width:400px; max-width:92vw; box-shadow:0 12px 40px rgba(0,0,0,.18); }
+.modal h3 { font-size:16px; margin-bottom:14px; }
+.modal label { display:block; font-size:13px; color:#444; margin-bottom:4px; margin-top:12px; }
+.modal input[type=text], .modal input[type=number], .modal input[type=datetime-local] { width:100%; padding:9px 11px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; }
+.modal small { color:#999; font-size:11px; }
+.modal .row { display:flex; gap:10px; margin-top:20px; }
+.modal .row button { flex:1; padding:10px; border-radius:8px; border:0; font-size:14px; font-weight:500; cursor:pointer; }
+.modal .row .save { background:#2563eb; color:white; }
+.modal .row .cancel { background:#eee; color:#333; }
 </style>
 </head>
 <body>
@@ -43,80 +40,82 @@ tr:last-child td { border-bottom:none; }
         {{FILE_ROWS}}
     </div>
     <div class="panel">
-        <h2>下载记录</h2>
-        <div class="filter-bar" id="filterBar" style="display:none">
-            正在查看：<b id="filterName"></b> 的下载记录
-            <a onclick="clearFilter()">[ 显示全部 ]</a>
-        </div>
+        <h2>下载记录 <span id="filter-tag" style="font-size:12px;color:#2563eb;display:none;"></span> <button class="linkbtn" id="clear-filter" style="display:none" onclick="clearFilter()">显示全部</button></h2>
         {{LOG_ROWS}}
     </div>
 </div>
-
-<!-- 设置弹窗 -->
-<div class="modal-mask" id="settingsModal">
+<div class="modal-mask" id="set-mask">
     <div class="modal">
-        <h3 id="modalTitle">⚙ 分享设置</h3>
-        <input type="hidden" id="setFileId">
-        <label>有效期（小时）</label>
-        <input type="number" id="setExpire" min="1" placeholder="留空 = 永不过期">
-        <div class="hint">从文件首次被收录起算，到期文件自动归档到 _expired/</div>
+        <h3>⚙ 分享设置</h3>
+        <div id="set-filename" style="font-size:12px;color:#888;margin-bottom:6px;word-break:break-all;"></div>
+        <label>过期时间（北京时间）</label>
+        <input type="datetime-local" id="set-expire" step="60">
+        <small>留空 = 永不过期</small>
         <label>最大下载次数</label>
-        <input type="number" id="setMaxDl" min="1" placeholder="留空 = 不限">
-        <div class="hint">达到次数后文件自动归档到 _expired/</div>
+        <input type="number" id="set-max" min="1" placeholder="留空 = 不限">
+        <small>达到次数后文件移到 _expired 目录</small>
         <label>访问密码</label>
-        <input type="text" id="setPwd" placeholder="留空 = 无密码">
-        <div class="hint">每次下载均需输入，不设 cookie，刷新页面需重新输入</div>
-        <div class="actions">
-            <button class="cancel" onclick="closeSettings()">取消</button>
-            <button class="save" onclick="saveSettings()">保存设置</button>
+        <input type="text" id="set-pwd" placeholder="留空 = 无密码">
+        <small>每次下载均需输入，不设 cookie</small>
+        <div class="row">
+            <button class="cancel" type="button" onclick="closeSet()">取消</button>
+            <button class="save" type="button" onclick="saveSet()">保存设置</button>
         </div>
     </div>
 </div>
-
 <script>
-// 当前文件配置缓存（由后端渲染时注入到行 data-*）
-const fileConfig = {};
-
-function openSettings(fileId) {
-    document.getElementById('setFileId').value = fileId;
-    document.getElementById('setExpire').value = '';
-    document.getElementById('setMaxDl').value = '';
-    document.getElementById('setPwd').value = '';
-    document.getElementById('settingsModal').classList.add('show');
+var ALL_FILES = {};
+function openSet(id) {
+    var mask = document.getElementById('set-mask');
+    var f = ALL_FILES[id];
+    document.getElementById('set-filename').textContent = f ? f.filename : '';
+    // 加载当前 meta
+    fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id})})
+        .then(function(r){ return r.json(); }).then(function(d){
+            var m = d.meta || {};
+            document.getElementById('set-expire').value = (m.expire_at ? m.expire_at.replace(' ','T').replace(':00','') : '');
+            document.getElementById('set-max').value = (m.max_downloads ? m.max_downloads : '');
+            document.getElementById('set-pwd').value = (m.password ? m.password : '');
+            mask.dataset.id = id;
+            mask.classList.add('show');
+        }).catch(function(){ mask.dataset.id = id; mask.classList.add('show'); });
 }
-function closeSettings() {
-    document.getElementById('settingsModal').classList.remove('show');
+function closeSet() { document.getElementById('set-mask').classList.remove('show'); }
+function saveSet() {
+    var mask = document.getElementById('set-mask');
+    var id = mask.dataset.id;
+    var exp = document.getElementById('set-expire').value; // YYYY-MM-DDTHH:mm
+    var max = document.getElementById('set-max').value;
+    var pwd = document.getElementById('set-pwd').value;
+    // 组装 expire_at 为 YYYY-MM-DD HH:mm:ss（北京时间）
+    var expire_at = '';
+    if (exp) { expire_at = exp.replace('T',' ') + ':00'; }
+    fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id, expire_at:expire_at, max_downloads:max, password:pwd})})
+        .then(function(r){ return r.json(); }).then(function(d){
+            if (d.ok) { closeSet(); location.reload(); }
+        });
 }
-function saveSettings() {
-    const id = document.getElementById('setFileId').value;
-    const body = JSON.stringify({
-        file_id: id,
-        expire_hours: document.getElementById('setExpire').value,
-        max_downloads: document.getElementById('setMaxDl').value,
-        password: document.getElementById('setPwd').value
-    });
-    fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body })
-        .then(r => r.json())
-        .then(j => { if (j.ok) { closeSettings(); location.reload(); } else alert('保存失败：'+(j.error||'')); })
-        .catch(e => alert('请求失败：'+e));
-}
-
-// 日志按文件筛选
-let currentFilter = null;
-function filterLogs(fileId) {
-    const rows = document.querySelectorAll('#log-table tr[data-fileid]');
-    const fileRow = document.querySelector('tr[data-fileid="'+fileId+'"]');
-    const fname = fileRow ? fileRow.querySelector('td').textContent : fileId;
-    rows.forEach(r => { r.style.display = (r.dataset.fileid === fileId) ? '' : 'none'; });
-    document.getElementById('filterBar').style.display = 'block';
-    document.getElementById('filterName').textContent = fname;
-    currentFilter = fileId;
+function filterLog(fid) {
+    var rows = document.querySelectorAll('#logtable tr[data-fid]');
+    var tag = document.getElementById('filter-tag');
+    var btn = document.getElementById('clear-filter');
+    rows.forEach(function(r){ r.style.display = (r.dataset.fid === fid) ? '' : 'none'; });
+    var f = ALL_FILES[fid];
+    tag.textContent = f ? '（仅显示：' + f.filename + '）' : '';
+    tag.style.display = '';
+    btn.style.display = '';
 }
 function clearFilter() {
-    document.querySelectorAll('#log-table tr[data-fileid]').forEach(r => r.style.display = '');
-    document.getElementById('filterBar').style.display = 'none';
-    currentFilter = null;
+    var rows = document.querySelectorAll('#logtable tr[data-fid]');
+    rows.forEach(function(r){ r.style.display = ''; });
+    document.getElementById('filter-tag').style.display = 'none';
+    document.getElementById('clear-filter').style.display = 'none';
 }
+// 收集文件信息供筛选使用
+document.querySelectorAll('table').forEach(function(t){
+    if (!t.querySelector('th')) return;
+    var ths = t.querySelectorAll('th'); if (!ths.length) return;
+});
 </script>
 </body>
 </html>
