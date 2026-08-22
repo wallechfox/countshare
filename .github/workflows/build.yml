@@ -3,7 +3,17 @@ name: Build and Push to GHCR
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'app.js'
+      - 'public/**'
+      - 'Dockerfile'
+  release:
+    types: [ published ]
   workflow_dispatch:
+
+concurrency:
+  group: build-push
+  cancel-in-progress: true
 
 jobs:
   build-and-push:
@@ -28,18 +38,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Build and push (on push to main)
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
         with:
-          images: ghcr.io/${{ github.repository }}
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/wallechfox/countshare:latest
 
-      - name: Build and push
+      - name: Build and push (on release)
+        if: github.event_name == 'release'
         uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
+            ghcr.io/wallechfox/countshare:latest
+            ghcr.io/wallechfox/countshare:${{ github.event.release.tag_name }}
