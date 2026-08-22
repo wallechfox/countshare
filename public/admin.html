@@ -7,15 +7,33 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; background:#fafafa; padding:40px 20px; color:#1a1a1a; }
-.container { max-width:880px; margin:0 auto; }
+.container { max-width:960px; margin:0 auto; }
 h2 { font-size:15px; font-weight:600; color:#333; margin:0 0 14px 4px; }
 .panel { background:white; border:1px solid #eaeaea; border-radius:10px; padding:24px; margin-bottom:20px; overflow-x:auto; }
 table { width:100%; border-collapse:collapse; }
 th,td { padding:10px 12px; border-bottom:1px solid #f3f3f3; font-size:13px; text-align:left; }
 th { background:#fafafa; color:#666; font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
 tr:last-child td { border-bottom:none; }
-.ua { max-width:340px; word-break:break-all; font-size:11px; color:#999; }
+.ua { max-width:320px; word-break:break-all; font-size:11px; color:#999; }
 .empty { color:#bbb; font-size:13px; padding:12px 0; }
+.red { color:#d33; font-weight:500; }
+.act-btn { background:#2563eb; color:white; border:none; padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer; margin-right:4px; }
+.act-btn:hover { background:#1d4ed8; }
+.filter-bar { font-size:13px; color:#555; margin-bottom:10px; }
+.filter-bar a { color:#2563eb; cursor:pointer; text-decoration:underline; }
+
+/* 弹窗 */
+.modal-mask { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); align-items:center; justify-content:center; z-index:50; }
+.modal-mask.show { display:flex; }
+.modal { background:white; border-radius:12px; padding:28px 32px; width:420px; max-width:92vw; box-shadow:0 8px 30px rgba(0,0,0,.15); }
+.modal h3 { font-size:16px; margin-bottom:18px; }
+.modal label { display:block; font-size:13px; color:#555; margin:12px 0 4px; }
+.modal input { width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+.modal .hint { font-size:11px; color:#999; margin-top:3px; }
+.modal .actions { margin-top:22px; display:flex; gap:10px; justify-content:flex-end; }
+.modal .actions button { padding:8px 20px; border-radius:8px; font-size:14px; cursor:pointer; border:none; }
+.modal .actions .save { background:#2563eb; color:white; }
+.modal .actions .cancel { background:#f0f0f0; color:#333; }
 </style>
 </head>
 <body>
@@ -26,8 +44,79 @@ tr:last-child td { border-bottom:none; }
     </div>
     <div class="panel">
         <h2>下载记录</h2>
+        <div class="filter-bar" id="filterBar" style="display:none">
+            正在查看：<b id="filterName"></b> 的下载记录
+            <a onclick="clearFilter()">[ 显示全部 ]</a>
+        </div>
         {{LOG_ROWS}}
     </div>
 </div>
+
+<!-- 设置弹窗 -->
+<div class="modal-mask" id="settingsModal">
+    <div class="modal">
+        <h3 id="modalTitle">⚙ 分享设置</h3>
+        <input type="hidden" id="setFileId">
+        <label>有效期（小时）</label>
+        <input type="number" id="setExpire" min="1" placeholder="留空 = 永不过期">
+        <div class="hint">从文件首次被收录起算，到期文件自动归档到 _expired/</div>
+        <label>最大下载次数</label>
+        <input type="number" id="setMaxDl" min="1" placeholder="留空 = 不限">
+        <div class="hint">达到次数后文件自动归档到 _expired/</div>
+        <label>访问密码</label>
+        <input type="text" id="setPwd" placeholder="留空 = 无密码">
+        <div class="hint">每次下载均需输入，不设 cookie，刷新页面需重新输入</div>
+        <div class="actions">
+            <button class="cancel" onclick="closeSettings()">取消</button>
+            <button class="save" onclick="saveSettings()">保存设置</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 当前文件配置缓存（由后端渲染时注入到行 data-*）
+const fileConfig = {};
+
+function openSettings(fileId) {
+    document.getElementById('setFileId').value = fileId;
+    document.getElementById('setExpire').value = '';
+    document.getElementById('setMaxDl').value = '';
+    document.getElementById('setPwd').value = '';
+    document.getElementById('settingsModal').classList.add('show');
+}
+function closeSettings() {
+    document.getElementById('settingsModal').classList.remove('show');
+}
+function saveSettings() {
+    const id = document.getElementById('setFileId').value;
+    const body = JSON.stringify({
+        file_id: id,
+        expire_hours: document.getElementById('setExpire').value,
+        max_downloads: document.getElementById('setMaxDl').value,
+        password: document.getElementById('setPwd').value
+    });
+    fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body })
+        .then(r => r.json())
+        .then(j => { if (j.ok) { closeSettings(); location.reload(); } else alert('保存失败：'+(j.error||'')); })
+        .catch(e => alert('请求失败：'+e));
+}
+
+// 日志按文件筛选
+let currentFilter = null;
+function filterLogs(fileId) {
+    const rows = document.querySelectorAll('#log-table tr[data-fileid]');
+    const fileRow = document.querySelector('tr[data-fileid="'+fileId+'"]');
+    const fname = fileRow ? fileRow.querySelector('td').textContent : fileId;
+    rows.forEach(r => { r.style.display = (r.dataset.fileid === fileId) ? '' : 'none'; });
+    document.getElementById('filterBar').style.display = 'block';
+    document.getElementById('filterName').textContent = fname;
+    currentFilter = fileId;
+}
+function clearFilter() {
+    document.querySelectorAll('#log-table tr[data-fileid]').forEach(r => r.style.display = '');
+    document.getElementById('filterBar').style.display = 'none';
+    currentFilter = null;
+}
+</script>
 </body>
 </html>
