@@ -1,120 +1,236 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>下载详情 - CountShare</title>
+<title>CountShare 管理页</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; background:#fafafa; padding:30px 18px; color:#1a1a1a; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f5f5f5; padding:20px; }
 .container { max-width:960px; margin:0 auto; }
-h2 { font-size:15px; font-weight:600; color:#333; margin:0 0 12px 4px; }
-.panel { background:white; border:1px solid #eaeaea; border-radius:10px; padding:20px; margin-bottom:18px; overflow-x:auto; }
-table { width:100%; border-collapse:collapse; }
-th,td { padding:9px 11px; border-bottom:1px solid #f3f3f3; font-size:13px; text-align:left; }
-th { background:#fafafa; color:#666; font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
-tr:last-child td { border-bottom:none; }
-.red { color:#b91c1c; }
-.empty { color:#bbb; font-size:13px; padding:10px 0; }
-.ua { max-width:300px; word-break:break-all; font-size:11px; color:#999; }
-.linkbtn { background:transparent; border:0; color:#2563eb; cursor:pointer; font-size:13px; padding:2px 6px; }
-.linkbtn:hover { text-decoration:underline; }
-/* 设置弹窗 */
-.modal-mask { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); align-items:center; justify-content:center; z-index:999; }
-.modal-mask.show { display:flex; }
-.modal { background:white; border-radius:12px; padding:24px; width:400px; max-width:92vw; box-shadow:0 12px 40px rgba(0,0,0,.18); }
-.modal h3 { font-size:16px; margin-bottom:14px; }
-.modal label { display:block; font-size:13px; color:#444; margin-bottom:4px; margin-top:12px; }
-.modal input[type=text], .modal input[type=number], .modal input[type=datetime-local] { width:100%; padding:9px 11px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; }
-.modal small { color:#999; font-size:11px; }
-.modal .row { display:flex; gap:10px; margin-top:20px; }
-.modal .row button { flex:1; padding:10px; border-radius:8px; border:0; font-size:14px; font-weight:500; cursor:pointer; }
-.modal .row .save { background:#2563eb; color:white; }
-.modal .row .cancel { background:#eee; color:#333; }
+h1 { margin-bottom:16px; }
+h2 { margin:24px 0 12px; }
+table { width:100%; border-collapse:collapse; background:white; border-radius:8px; overflow:hidden; margin-bottom:24px; font-size:14px; }
+th, td { padding:10px 8px; text-align:left; border-bottom:1px solid #eee; }
+th { background:#f8f9fa; font-weight:600; }
+tr:hover { background:#f8f9fa; }
+.status-ok { color:green; }
+.status-expired { color:red; }
+.status-deleted { color:red; }
+.btn { padding:5px 12px; border:none; border-radius:4px; cursor:pointer; font-size:12px; margin-right:4px; }
+.btn-set { background:#007bff; color:white; }
+.btn-log { background:#28a745; color:white; }
+.btn-copy { background:#6c757d; color:white; }
+.btn-copy.copied { background:#28a745; }
+.modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.modal { background:white; padding:24px; border-radius:12px; width:90%; max-width:420px; }
+.modal label { display:block; margin:12px 0 4px; font-weight:500; }
+.modal input[type="datetime-local"], .modal input[type="number"], .modal input[type="text"] { width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; }
+.modal .quick-options { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 4px; }
+.modal .quick-options button { padding:4px 10px; background:#f0f0f0; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-size:12px; }
+.modal .quick-options button.active { background:#007bff; color:white; border-color:#007bff; }
+.modal .actions { margin-top:16px; display:flex; gap:8px; justify-content:flex-end; }
+.modal .actions button { padding:8px 16px; border:none; border-radius:4px; cursor:pointer; }
+.modal .actions .save { background:#007bff; color:white; }
+.modal .actions .cancel { background:#6c757d; color:white; }
+.log-filter { margin-bottom:12px; font-size:14px; }
+.log-filter a { color:#007bff; cursor:pointer; margin-left:8px; }
 </style>
 </head>
 <body>
 <div class="container">
-    <div class="panel">
-        <h2>文件总览</h2>
-        {{FILE_ROWS}}
-    </div>
-    <div class="panel">
-        <h2>下载记录 <span id="filter-tag" style="font-size:12px;color:#2563eb;display:none;"></span> <button class="linkbtn" id="clear-filter" style="display:none" onclick="clearFilter()">显示全部</button></h2>
-        {{LOG_ROWS}}
-    </div>
+    <h1>📊 CountShare 管理页</h1>
+    <div id="app"></div>
 </div>
-<div class="modal-mask" id="set-mask">
-    <div class="modal">
-        <h3>⚙ 分享设置</h3>
-        <div id="set-filename" style="font-size:12px;color:#888;margin-bottom:6px;word-break:break-all;"></div>
-        <label>过期时间（北京时间）</label>
-        <input type="datetime-local" id="set-expire" step="60">
-        <small>留空 = 永不过期</small>
-        <label>最大下载次数</label>
-        <input type="number" id="set-max" min="1" placeholder="留空 = 不限">
-        <small>达到次数后文件移到 _expired 目录</small>
-        <label>访问密码</label>
-        <input type="text" id="set-pwd" placeholder="留空 = 无密码">
-        <small>每次下载均需输入，不设 cookie</small>
-        <div class="row">
-            <button class="cancel" type="button" onclick="closeSet()">取消</button>
-            <button class="save" type="button" onclick="saveSet()">保存设置</button>
-        </div>
-    </div>
-</div>
+
 <script>
-var ALL_FILES = {};
-function openSet(id) {
-    var mask = document.getElementById('set-mask');
-    var f = ALL_FILES[id];
-    document.getElementById('set-filename').textContent = f ? f.filename : '';
-    // 加载当前 meta
-    fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id})})
-        .then(function(r){ return r.json(); }).then(function(d){
-            var m = d.meta || {};
-            document.getElementById('set-expire').value = (m.expire_at ? m.expire_at.replace(' ','T').replace(':00','') : '');
-            document.getElementById('set-max').value = (m.max_downloads ? m.max_downloads : '');
-            document.getElementById('set-pwd').value = (m.password ? m.password : '');
-            mask.dataset.id = id;
-            mask.classList.add('show');
-        }).catch(function(){ mask.dataset.id = id; mask.classList.add('show'); });
+const API = '/api/files';
+let allFiles = [];
+let allLogs = [];
+let archived = {};
+let filterFile = null;
+
+async function fetchData() {
+    const res = await fetch(API);
+    return res.json();
 }
-function closeSet() { document.getElementById('set-mask').classList.remove('show'); }
-function saveSet() {
-    var mask = document.getElementById('set-mask');
-    var id = mask.dataset.id;
-    var exp = document.getElementById('set-expire').value; // YYYY-MM-DDTHH:mm
-    var max = document.getElementById('set-max').value;
-    var pwd = document.getElementById('set-pwd').value;
-    // 组装 expire_at 为 YYYY-MM-DD HH:mm:ss（北京时间）
-    var expire_at = '';
-    if (exp) { expire_at = exp.replace('T',' ') + ':00'; }
-    fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id, expire_at:expire_at, max_downloads:max, password:pwd})})
-        .then(function(r){ return r.json(); }).then(function(d){
-            if (d.ok) { closeSet(); location.reload(); }
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function formatTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+}
+
+function getFileStatus(filename) {
+    if (allFiles.some(f => f.filename === filename)) return 'ok';
+    if (archived[filename]) return 'expired';
+    return 'deleted';
+}
+
+function getStatusLabel(filename) {
+    const status = getFileStatus(filename);
+    if (status === 'ok') return { text: '正常', class: 'status-ok' };
+    if (status === 'expired') {
+        const reason = archived[filename]?.reason || 'expired';
+        const label = reason === 'expired' ? '已过期' : '已用尽';
+        return { text: label, class: 'status-expired' };
+    }
+    return { text: '已删除', class: 'status-deleted' };
+}
+
+// ----- 设置弹窗 -----
+function showSettings(file) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+        <div class="modal">
+            <h3>⚙ 分享设置 - ${file.filename}</h3>
+            <label>过期时间（北京时间）</label>
+            <div class="quick-options">
+                <button data-days="1">1天</button>
+                <button data-days="3">3天</button>
+                <button data-days="7">7天</button>
+                <button data-days="custom">自定义</button>
+            </div>
+            <input type="datetime-local" id="set-expire" step="60">
+            <label>最大下载次数</label>
+            <input type="number" id="set-max" min="1" placeholder="留空 = 不限">
+            <label>访问密码</label>
+            <input type="text" id="set-pwd" placeholder="留空 = 无密码">
+            <div class="actions">
+                <button class="cancel" onclick="this.closest('.modal-overlay').remove()">取消</button>
+                <button class="save" id="save-btn">保存</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const expireInput = overlay.querySelector('#set-expire');
+    const quickBtns = overlay.querySelectorAll('.quick-options button');
+
+    // 填充现有值
+    if (file.expire_at) {
+        const dt = file.expire_at.replace(' ', 'T').slice(0, 16);
+        expireInput.value = dt;
+    }
+    if (file.max_downloads) {
+        overlay.querySelector('#set-max').value = file.max_downloads;
+    }
+
+    // 快捷按钮逻辑（修复时区问题）
+    quickBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const days = parseInt(btn.dataset.days);
+            if (isNaN(days)) { // custom
+                expireInput.value = '';
+                expireInput.focus();
+                quickBtns.forEach(b => b.classList.remove('active'));
+                return;
+            }
+            const now = new Date();
+            now.setDate(now.getDate() + days);
+            // 格式化为 YYYY-MM-DDTHH:mm
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const value = `${year}-${month}-${day}T${hours}:${mins}`;
+            expireInput.value = value;
+            quickBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
         });
+    });
+
+    overlay.querySelector('#save-btn').onclick = async () => {
+        const expire = overlay.querySelector('#set-expire').value;
+        const max = overlay.querySelector('#set-max').value;
+        const pwd = overlay.querySelector('#set-pwd').value;
+        const formData = new URLSearchParams();
+        formData.append('id', file.id);
+        if (expire) formData.append('expire_at', expire);
+        if (max) formData.append('max_downloads', max);
+        if (pwd) formData.append('password', pwd);
+        await fetch('/api/settings', { method: 'POST', body: formData });
+        overlay.remove();
+        render();
+    };
 }
-function filterLog(fid) {
-    var rows = document.querySelectorAll('#logtable tr[data-fid]');
-    var tag = document.getElementById('filter-tag');
-    var btn = document.getElementById('clear-filter');
-    rows.forEach(function(r){ r.style.display = (r.dataset.fid === fid) ? '' : 'none'; });
-    var f = ALL_FILES[fid];
-    tag.textContent = f ? '（仅显示：' + f.filename + '）' : '';
-    tag.style.display = '';
-    btn.style.display = '';
+
+// ----- 复制链接（带反馈） -----
+async function copyLink(id, btnElement) {
+    const url = window.location.origin + '/d/' + id;
+    try {
+        await navigator.clipboard.writeText(url);
+        btnElement.innerText = '✅ 已复制';
+        btnElement.classList.add('copied');
+        setTimeout(() => {
+            btnElement.innerText = '🔗 复制链接';
+            btnElement.classList.remove('copied');
+        }, 2000);
+    } catch (e) {
+        alert('复制失败，请手动复制链接：' + url);
+    }
 }
-function clearFilter() {
-    var rows = document.querySelectorAll('#logtable tr[data-fid]');
-    rows.forEach(function(r){ r.style.display = ''; });
-    document.getElementById('filter-tag').style.display = 'none';
-    document.getElementById('clear-filter').style.display = 'none';
+
+// ----- 渲染 -----
+function render() {
+    const filesHtml = `
+        <table>
+            <tr><th>文件名</th><th>大小</th><th>状态</th><th>有效期</th><th>密码</th><th>下载情况</th><th>操作</th></tr>
+            ${allFiles.map(f => `
+                <tr>
+                    <td>${f.filename}</td>
+                    <td>${formatSize(f.filesize)}</td>
+                    <td class="status-ok">正常</td>
+                    <td>${f.expire_at || '无'}</td>
+                    <td>${f.password_set ? '🔒 已设' : '无'}</td>
+                    <td>${f.download_count} / ${f.max_downloads ? f.max_downloads : '∞'}</td>
+                    <td>
+                        <button class="btn btn-set" onclick='showSettings(${JSON.stringify(f).replace(/'/g, "&#39;")})'>⚙ 设置</button>
+                        <button class="btn btn-log" onclick="filterFile='${f.filename}';render()">📋 日志</button>
+                        <button class="btn btn-copy" onclick="copyLink('${f.id}', this)">🔗 复制链接</button>
+                    </td>
+                </tr>
+            `).join('')}
+        </table>
+    `;
+
+    const filteredLogs = filterFile ? allLogs.filter(l => l.file === filterFile) : allLogs;
+    const logsHtml = `
+        <h2>📋 下载记录</h2>
+        <div class="log-filter">
+            ${filterFile ? `正在查看：<strong>${filterFile}</strong> <a onclick="filterFile=null;render()">显示全部</a>` : '显示全部'}
+        </div>
+        <table>
+            <tr><th>时间</th><th>文件</th><th>IP</th><th>浏览器</th></tr>
+            ${filteredLogs.map(l => {
+                const status = getStatusLabel(l.file);
+                const statusText = status.text !== '正常' ? ` [${status.text}]` : '';
+                const color = status.class === 'status-ok' ? 'inherit' : 'red';
+                return `<tr>
+                    <td>${formatTime(l.time)}</td>
+                    <td style="color:${color};font-weight:${status.text!=='正常'?'bold':'normal'}">${l.file}${statusText}</td>
+                    <td>${l.ip}</td>
+                    <td>${l.ua ? l.ua.substring(0, 50) : ''}</td>
+                </tr>`;
+            }).join('')}
+        </table>
+    `;
+
+    document.getElementById('app').innerHTML = filesHtml + logsHtml;
 }
-// 收集文件信息供筛选使用
-document.querySelectorAll('table').forEach(function(t){
-    if (!t.querySelector('th')) return;
-    var ths = t.querySelectorAll('th'); if (!ths.length) return;
+
+fetchData().then(data => {
+    allFiles = data.files || [];
+    allLogs = data.logs || [];
+    archived = data.archived || {};
+    render();
 });
 </script>
 </body>
