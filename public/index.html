@@ -1,91 +1,155 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{PAGE_TITLE}}</title>
-<meta property="og:title" content="{{PAGE_TITLE}}">
-<meta property="og:description" content="CountShare 极简文件分享">
+<title>CountShare</title>
+<meta property="og:title" content="CountShare">
+<meta property="og:description" content="文件分享">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:#fafafa; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; color:#1a1a1a; }
-.container { background:white; border:1px solid #eaeaea; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04); padding:56px 48px; max-width:480px; width:100%; text-align:center; }
-.icon { font-size:40px; margin-bottom:20px; }
-h1 { font-size:18px; font-weight:600; color:#1a1a1a; margin-bottom:6px; word-break:break-all; line-height:1.4; }
-.size { color:#888; font-size:13px; margin-bottom:10px; }
-.tags { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:18px; }
-.tag { display:inline-block; background:#f5f5f5; color:#555; font-size:12px; padding:3px 10px; border-radius:6px; }
-.count { display:inline-flex; align-items:center; gap:6px; color:#555; font-size:13px; margin-bottom:24px; padding:4px 12px; background:#f5f5f5; border-radius:6px; }
-.btn { display:inline-block; background:#2563eb; color:white; padding:12px 40px; border-radius:8px; text-decoration:none; font-size:15px; font-weight:500; transition:background .15s; border:0; cursor:pointer; }
-.btn:hover { background:#1d4ed8; }
-.footer { margin-top:32px; color:#bbb; font-size:11px; letter-spacing:.5px; }
-.multi-list { text-align:left; }
-.multi-list .item { display:flex; align-items:center; padding:14px 16px; border:1px solid #eee; border-radius:10px; margin-bottom:10px; }
-.multi-list .item .ico { font-size:24px; margin-right:14px; }
-.multi-list .item .info { flex:1; min-width:0; }
-.multi-list .item .info .name { font-weight:500; font-size:14px; color:#1a1a1a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.multi-list .item .info .meta { font-size:12px; color:#999; margin-top:2px; }
-.multi-list .item .dl-btn { background:#2563eb; color:white; padding:7px 18px; border-radius:7px; text-decoration:none; font-size:13px; font-weight:500; white-space:nowrap; border:0; cursor:pointer; }
-/* 密码弹窗 */
-.modal-mask { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); align-items:center; justify-content:center; z-index:999; }
-.modal-mask.show { display:flex; }
-.modal { background:white; border-radius:12px; padding:28px 26px; width:340px; max-width:92vw; box-shadow:0 12px 40px rgba(0,0,0,.18); text-align:center; }
-.modal h3 { font-size:16px; margin-bottom:4px; }
-.modal .sub { color:#888; font-size:12px; margin-bottom:16px; word-break:break-all; }
-.modal input { width:100%; padding:11px 13px; border:1px solid #ddd; border-radius:8px; font-size:15px; margin-bottom:12px; box-sizing:border-box; }
-.modal .err { color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; padding:8px 11px; border-radius:8px; font-size:12px; margin-bottom:12px; text-align:left; display:none; }
-.modal .err.show { display:block; }
-.modal .row { display:flex; gap:10px; }
-.modal .row button { flex:1; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f5f5f5; padding:20px; }
+.container { max-width:640px; margin:0 auto; }
+.card { background:white; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.1); text-align:center; }
+.card h1 { margin-bottom:12px; word-break:break-all; }
+.card .info { color:#666; font-size:14px; margin-bottom:16px; line-height:1.6; }
+.card .info .status { color:#999; font-size:13px; }
+.card .btn { display:inline-block; padding:12px 32px; background:#007bff; color:white; text-decoration:none; border-radius:8px; font-size:16px; cursor:pointer; border:none; }
+.card .btn:hover { background:#0056b3; }
+.list { background:white; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+.list-item { display:flex; align-items:center; padding:12px 0; border-bottom:1px solid #eee; flex-wrap:wrap; }
+.list-item:last-child { border-bottom:none; }
+.list-item .name { flex:1; min-width:120px; font-weight:500; word-break:break-all; }
+.list-item .meta { color:#666; font-size:13px; min-width:180px; }
+.list-item .actions { margin-left:auto; }
+.list-item .actions button { padding:6px 14px; background:#007bff; color:white; text-decoration:none; border-radius:6px; font-size:13px; border:none; cursor:pointer; }
+.modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.modal { background:white; padding:24px; border-radius:12px; width:90%; max-width:360px; text-align:center; }
+.modal input { width:100%; padding:10px; margin:12px 0; border:1px solid #ddd; border-radius:6px; font-size:16px; }
+.modal button { padding:10px 24px; background:#007bff; color:white; border:none; border-radius:6px; cursor:pointer; font-size:15px; }
+.modal .error { color:red; background:#fee; padding:8px; border-radius:4px; margin-bottom:10px; font-size:14px; }
+.modal .cancel-btn { background:#6c757d; }
+.modal .cancel-btn:hover { background:#5a6268; }
 </style>
 </head>
 <body>
-{{PAGE_CONTENT}}
+<div class="container" id="app"></div>
+
 <script>
-function openPwd(id, filename) {
-    var mask = document.getElementById('pwd-mask');
-    document.getElementById('pwd-filename').textContent = filename;
-    document.getElementById('pwd-input').value = '';
-    document.getElementById('pwd-err').classList.remove('show');
-    mask.dataset.id = id;
-    mask.classList.add('show');
-    setTimeout(function(){ document.getElementById('pwd-input').focus(); }, 50);
+const API = '/api/files';
+
+async function fetchData() {
+    const res = await fetch(API);
+    return res.json();
 }
-function closePwd() { document.getElementById('pwd-mask').classList.remove('show'); }
-function submitPwd() {
-    var mask = document.getElementById('pwd-mask');
-    var id = mask.dataset.id;
-    var pwd = document.getElementById('pwd-input').value;
-    var err = document.getElementById('pwd-err');
-    if (!pwd) { err.textContent = '请输入密码'; err.classList.add('show'); return; }
-    fetch('/d/' + id, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'pwd=' + encodeURIComponent(pwd) })
-        .then(function(r){
-            if (r.ok) { closePwd(); return r.blob(); }
-            return r.text().then(function(t){ throw new Error(t); });
-        })
-        .then(function(blob){
-            // 触发下载
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'download';
-            document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
-        })
-        .catch(function(){ err.textContent = '密码错误，请重试'; err.classList.add('show'); });
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/1024/1024).toFixed(1) + ' MB';
 }
-document.getElementById('pwd-input').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPwd(); });
-</script>
-<div class="modal-mask" id="pwd-mask">
-    <div class="modal">
-        <h3>🔒 需要密码</h3>
-        <p class="sub" id="pwd-filename"></p>
-        <div class="err" id="pwd-err"></div>
-        <input id="pwd-input" type="password" placeholder="请输入访问密码" autocomplete="off">
-        <div class="row">
-            <button class="btn" style="background:#eee;color:#333" type="button" onclick="closePwd()">取消</button>
-            <button class="btn" type="button" onclick="submitPwd()">确认下载</button>
+
+function formatTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+}
+
+function showPasswordModal(fileId, fileName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+        <div class="modal">
+            <h3>🔒 ${fileName}</h3>
+            <div class="error" style="display:none">密码错误，请重试</div>
+            <form id="pwd-form">
+                <input type="password" name="pwd" placeholder="请输入访问密码" required autofocus>
+                <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+                    <button type="submit">确认下载</button>
+                    <button type="button" class="cancel-btn">取消</button>
+                </div>
+            </form>
         </div>
-    </div>
-</div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.cancel-btn').addEventListener('click', () => {
+        overlay.remove();
+    });
+
+    overlay.querySelector('#pwd-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pwd = overlay.querySelector('input').value;
+        const formData = new URLSearchParams();
+        formData.append('pwd', pwd);
+        const res = await fetch(`/d/${fileId}`, { method: 'POST', body: formData });
+        if (res.ok && res.headers.get('content-type')?.includes('application/octet-stream')) {
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            overlay.remove();
+        } else {
+            overlay.querySelector('.error').style.display = 'block';
+            overlay.querySelector('input').value = '';
+            overlay.querySelector('input').focus();
+        }
+    });
+}
+
+async function render() {
+    const { files } = await fetchData();
+    const app = document.getElementById('app');
+
+    if (files.length === 0) {
+        app.innerHTML = '<div class="card"><h1>暂无文件</h1><p class="info">请往 files 目录放入文件</p></div>';
+        return;
+    }
+
+    if (files.length === 1) {
+        const f = files[0];
+        const statusParts = [];
+        if (f.expire_at) statusParts.push(`⏳ 有效至 ${f.expire_at}`);
+        if (f.max_downloads) statusParts.push(`📊限制下载 ${f.max_downloads} 次`);
+        app.innerHTML = `
+            <div class="card">
+                <h1>📄 ${f.filename}</h1>
+                <p class="info">${formatSize(f.filesize)} · 已下载 ${f.download_count} 次${statusParts.length ? ' · ' + statusParts.join(' · ') : ''}</p>
+                <button class="btn" onclick="handleDownload('${f.id}', '${f.filename}', ${f.password_set})">下载文件</button>
+            </div>
+        `;
+    } else {
+        app.innerHTML = `
+            <h2 style="margin-bottom:12px;">📂 CountShare 分享文件列表</h2>
+            <div class="list">
+                ${files.map(f => {
+                    const statusParts = [];
+                    if (f.expire_at) statusParts.push(`⏳ ${f.expire_at}`);
+                    if (f.max_downloads) statusParts.push(`📊限${f.max_downloads}次`);
+                    return `<div class="list-item">
+                        <span class="name">📄 ${f.filename}</span>
+                        <span class="meta">${formatSize(f.filesize)} · 已下载 ${f.download_count} 次${statusParts.length ? ' · ' + statusParts.join(' · ') : ''}</span>
+                        <span class="actions"><button onclick="handleDownload('${f.id}', '${f.filename}', ${f.password_set})">下载</button></span>
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+    }
+}
+
+function handleDownload(id, name, needsPassword) {
+    if (needsPassword) {
+        showPasswordModal(id, name);
+    } else {
+        window.location.href = `/d/${id}`;
+    }
+}
+
+render();
+</script>
 </body>
 </html>
