@@ -3,24 +3,17 @@ name: Build and Push to GHCR
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - 'app.js'
-      - 'public/**'
-      - 'Dockerfile'
   release:
     types: [ published ]
   workflow_dispatch:
 
-concurrency:
-  group: build-push
-  cancel-in-progress: true
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -38,22 +31,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push (on push to main)
-        if: github.event_name == 'push'
-        uses: docker/build-push-action@v7
+      - name: Extract metadata (tags)
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ghcr.io/wallechfox/countshare:latest
-
-      - name: Build and push (on release)
-        if: github.event_name == 'release'
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
+          images: ghcr.io/wallechfox/countshare
           tags: |
-            ghcr.io/wallechfox/countshare:latest
-            ghcr.io/wallechfox/countshare:${{ github.event.release.tag_name }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
