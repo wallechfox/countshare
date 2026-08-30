@@ -1,9 +1,8 @@
-
-# CountShare 极简文件分享
+# CountShare 极简文件分享 V2.1
 
 一个极简的文件分享工具：上传文件或文件夹到服务器，生成分享链接，别人下载后你能看到下载次数和访问者信息。无需登录，无需数据库，单容器轻量部署。
 
-![Docker Pulls](https://img.shields.io/badge/CountShare-v2.0-blue) ![GHCR](https://img.shields.io/badge/Registry-ghcr.io-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![CountShare](https://img.shields.io/badge/CountShare-v2.1-blue) ![GHCR](https://img.shields.io/badge/Registry-ghcr.io-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## ✨ 功能特性
 
@@ -18,8 +17,9 @@
 - **有效期限制**：可设置分享链接的过期时间（北京时间），过期后提示用户
 - **下载次数限制**：可设置最大下载次数，用尽后自动提示
 - **数据集中存储**：所有分享配置和下载记录统一存储在 `data.json` 中
+- **统计 API（v2.1 新增）**：通过 RESTful API 暴露下载统计，支持 Token 鉴权，方便同服务器其他 Docker 容器或外部网站调用读取
 - **零依赖**：纯 Node.js 内置模块，不需要 `npm install`
-- **极轻量**：基于 `node:20-alpine`，镜像约 50MB
+- **极轻量**：基于 `node:20-alpine`，镜像约 50MB（解压后约 129MB）
 
 ## 🚀 快速开始
 
@@ -36,9 +36,12 @@ docker run -d \
   -v /www/countshare/files:/files \
   -v countshare-data:/data \
   -e ADMIN_PATH=my-secret-admin \
+  -e API_TOKEN=你的随机长密码 \
   --restart unless-stopped \
   ghcr.io/wallechfox/countshare:latest
 ```
+
+> ⚠️ **安全提醒**：`API_TOKEN` 用于保护统计 API 不被未授权访问。如果不设置，统计 API 将完全开放，**任何人都可以读取你的下载数据**。强烈建议设置。
 
 ### 方式二：Docker Compose
 
@@ -56,6 +59,8 @@ services:
       - countshare-data:/data
     environment:
       - ADMIN_PATH=my-secret-admin
+      - API_TOKEN=你的随机长密码
+      # - ALLOWED_ORIGINS=https://your-site.com,https://another-site.com
     restart: unless-stopped
 
 volumes:
@@ -75,6 +80,7 @@ docker logs countshare
 ```
 
 输出示例：
+
 ```
 ========================================
   CountShare running
@@ -90,7 +96,7 @@ docker logs countshare
 
 ### 第二步：访问管理页
 
-在浏览器中打开管理页地址（如 `http://你的服务器IP:8000/a3f8k2d1e5f6`），你会看到三个主要区域：
+在浏览器中打开管理页地址，你会看到三个主要区域：
 
 1. **文件列表**：显示 `/files` 目录下的所有文件和文件夹
 2. **分享列表**：显示所有已创建的分享链接及其状态
@@ -125,7 +131,7 @@ docker logs countshare
 在「分享列表」区域，你可以：
 
 - **查看所有分享**：列表显示路径、状态（正常/已过期/次数用尽）、是否有密码、有效期、下载情况
-- **复制链接**：点击「复制」按钮，链接会自动复制到剪贴板，按钮会短暂变为「✅ 已复制」
+- **复制链接**：点击「复制」按钮，链接会自动复制到剪贴板
 - **修改设置**：点击「设置」按钮，可修改密码、有效期、最大下载次数
 - **取消分享**：点击「取消」按钮，该分享链接将立即失效
 - **批量取消**：勾选多个分享项，点击「批量取消」一次性取消多个分享
@@ -138,19 +144,79 @@ docker logs countshare
 - 可通过下拉菜单筛选特定分享链接的下载记录
 - 每条记录包含：下载时间、文件名、下载者 IP、浏览器型号
 
-### 第七步：分享链接的访问效果
+## 📊 统计 API（v2.1 新增）
 
-将分享链接发给别人后，对方打开会看到：
+CountShare v2.1 新增了只读的统计 API，方便你在同服务器的其他 Docker 容器、网站后端或前端页面中读取下载数据。
 
-- **文件分享**：显示文件名、大小、已下载次数、有效期/限制（如有），点击「下载文件」按钮即可下载
-- **文件夹分享**：显示该文件夹下的所有文件列表（表格形式），每个文件可单独点击下载，也可点击「打包下载全部」一键下载整个文件夹的 zip 压缩包
-- **有密码的分享**：访问时会先显示密码输入框，输入正确密码后才能查看和下载
+### 端点列表
+
+| 端点 | 说明 | 返回示例 |
+|------|------|----------|
+| `GET /api/stats/total` | 获取总下载次数 | `{"total_downloads": 42}` |
+| `GET /api/stats` | 获取所有分享的统计 | 包含每个分享的下载次数、剩余次数等 |
+| `GET /api/stats/:shareId` | 获取单个分享的统计 | 包含文件名、下载次数、分享链接等 |
+
+### 鉴权方式
+
+如果设置了环境变量 `API_TOKEN`，所有 `/api/` 请求**必须**携带 Token，否则返回 `401 Unauthorized`。
+
+**方式一：URL 参数**
+
+```bash
+curl "http://localhost:8000/api/stats/total?token=你的随机长密码"
+```
+
+**方式二：HTTP Header**
+
+```bash
+curl -H "X-API-Token: 你的随机长密码" http://localhost:8000/api/stats/total
+```
+
+> ⚠️ **如果不设置 `API_TOKEN`，API 将完全开放，任何人都可以访问。** 生产环境务必设置。
+
+### 跨域（CORS）配置
+
+如果你的前端页面（JavaScript）需要直接调用 CountShare 的 API，需要设置 `ALLOWED_ORIGINS` 环境变量：
+
+```bash
+-e ALLOWED_ORIGINS=https://your-site.com,https://www.your-site.com
+```
+
+设置后，浏览器跨域请求将被允许。未设置的域名会被浏览器拦截。
+
+### 调用示例
+
+**同服务器其他 Docker 容器调用**（两个容器在同一网络）：
+
+```bash
+curl http://countshare:8000/api/stats/total?token=你的随机长密码
+```
+
+**服务器本机调用**：
+
+```bash
+curl http://localhost:8000/api/stats/total?token=你的随机长密码
+```
+
+**前端 JavaScript 调用**：
+
+```javascript
+fetch('https://your-domain.com:8000/api/stats/total', {
+  headers: { 'X-API-Token': '你的随机长密码' }
+})
+.then(r => r.json())
+.then(data => {
+  console.log('总下载次数:', data.total_downloads);
+});
+```
 
 ## 🔧 环境变量
 
 | 变量名 | 默认值 | 说明 |
 |---|---|---|
 | `ADMIN_PATH` | 随机生成（12位） | 管理页面的访问路径。设置后管理地址为 `/你的路径`，不设置则随机生成并在日志中打印 |
+| `API_TOKEN` | 无（不鉴权） | **统计 API 的访问 Token**。设置后，所有 `/api/stats` 请求必须携带此 Token。强烈建议设置 |
+| `ALLOWED_ORIGINS` | 无（不跨域） | 允许跨域访问 API 的网站域名，逗号分隔。仅在需要浏览器前端直接调用 API 时设置 |
 | `PORT` | 8000 | 服务监听端口 |
 
 ## 📂 目录说明
@@ -167,6 +233,7 @@ docker logs countshare
 - 发布软件安装包并统计下载量
 - 分享文档/资料并了解谁下载了
 - 对敏感文件设置密码保护
+- **（v2.1）** 通过 API 将下载次数集成到自己的网站或监控面板中
 - 任何不需要复杂权限管理的文件分享需求
 
 ## 🔒 安全说明
@@ -176,13 +243,14 @@ docker logs countshare
 - 程序不进行路径遍历，无法访问 `/files` 目录之外的文件
 - 管理页地址只存在于服务端，前端 HTML 中无任何泄露
 - 密码在服务端比对，前端 JS 不包含密码明文
+- **统计 API 支持 Token 鉴权**：设置 `API_TOKEN` 后，只有持有 Token 的调用方才能读取统计数据
 - 所有配置和日志集中在 `data.json`，便于备份和管理
 
 ## 🐛 常见问题
 
 **Q：时间显示不对，差 8 小时？**
 
-A：程序已内置北京时间（+8h）修正，且管理页快捷按钮也基于 UTC 明确计算。如仍有问题请提交 Issue。
+A：程序已内置北京时间（+8h）修正。如仍有问题请提交 Issue。
 
 **Q：国内服务器拉取 GHCR 镜像慢？**
 
@@ -198,32 +266,19 @@ A：运行 `docker logs countshare`，启动日志中会打印完整地址。
 
 **Q：分享的文件过期后会怎样？**
 
-A：过期或次数用尽的文件不会自动移走，而是保留在原位置。用户访问时会提示「链接已过期」或「下载次数已用尽」。分享记录会保留在管理页，方便查看历史。
+A：过期或次数用尽的文件不会自动移走，而是保留在原位置。用户访问时会提示「链接已过期」或「下载次数已用尽」。
 
 **Q：如何给文件设置密码/有效期/次数限制？**
 
 A：在管理页的文件列表中，点击文件行的「分享」按钮，在弹窗中配置即可。已分享的项可在「分享列表」中点击「设置」修改参数。
 
-**Q：文件夹分享是否支持子文件单独下载？**
+**Q：统计 API 不设置 API_TOKEN 会有风险吗？**
 
-A：支持。用户打开文件夹分享链接后，会看到文件列表，每个文件可单独点击下载，同时也可以一键打包下载全部文件（自动生成 zip 压缩包）。
+A：是的。如果不设置 `API_TOKEN`，任何人只要知道你的服务器地址和端口，就可以直接访问 `/api/stats` 获取所有分享的下载数据。生产环境**务必设置 `API_TOKEN`**。
 
 **Q：如何更新到最新版本？**
 
-A：重新拉取镜像并重启：
-
-```bash
-docker pull ghcr.io/wallechfox/countshare:latest
-docker stop countshare && docker rm countshare
-docker run -d \
-  --name countshare \
-  -p 8000:8000 \
-  -v /www/countshare/files:/files \
-  -v countshare-data:/data \
-  -e ADMIN_PATH=my-secret-admin \
-  --restart unless-stopped \
-  ghcr.io/wallechfox/countshare:latest
-```
+A：见 [UPGRADE.md](UPGRADE.md) 升级说明。
 
 ## 📜 开源协议
 
