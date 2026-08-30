@@ -869,6 +869,111 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ========== 统计 API（供外部调用） ==========
+  
+  // --- /api/stats/total（总下载次数） ---
+  if (pathname === '/api/stats/total' && method === 'GET') {
+    // 可选鉴权
+    const apiToken = process.env.API_TOKEN;
+    if (apiToken) {
+      const providedToken = urlObj.searchParams.get('token') || req.headers['x-api-token'];
+      if (providedToken !== apiToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+    }
+    // CORS
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+    const origin = req.headers.origin;
+    if (allowedOrigins.length > 0 && origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+    }
+    // 汇总
+    const total = Object.values(data.shares).reduce((sum, s) => sum + (s.stats?.download_count || 0), 0);
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify({ total_downloads: total }));
+    return;
+  }
+
+  // --- /api/stats（所有分享统计） ---
+  if (pathname === '/api/stats' && method === 'GET') {
+    const apiToken = process.env.API_TOKEN;
+    if (apiToken) {
+      const providedToken = urlObj.searchParams.get('token') || req.headers['x-api-token'];
+      if (providedToken !== apiToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+    }
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+    const origin = req.headers.origin;
+    if (allowedOrigins.length > 0 && origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+    }
+    const total = Object.values(data.shares).reduce((sum, s) => sum + (s.stats?.download_count || 0), 0);
+    const list = Object.entries(data.shares).map(([id, s]) => ({
+      share_id: id,
+      path: s.path,
+      type: s.type,
+      download_count: s.stats?.download_count || 0,
+      max_downloads: s.settings?.max_downloads || null,
+      remaining: s.settings?.max_downloads ? s.settings.max_downloads - (s.stats?.download_count || 0) : null,
+      share_url: `http://${req.headers.host}/s/${id}`
+    }));
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify({
+      total_downloads: total,
+      share_count: list.length,
+      shares: list,
+      updated_at: new Date().toISOString()
+    }));
+    return;
+  }
+
+  // --- /api/stats/:shareId（单个分享统计） ---
+  const statMatch = pathname.match(/^\/api\/stats\/([a-f0-9]{6})$/);
+  if (statMatch && method === 'GET') {
+    const apiToken = process.env.API_TOKEN;
+    if (apiToken) {
+      const providedToken = urlObj.searchParams.get('token') || req.headers['x-api-token'];
+      if (providedToken !== apiToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+    }
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+    const origin = req.headers.origin;
+    if (allowedOrigins.length > 0 && origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+    }
+    const shareId = statMatch[1];
+    const share = data.shares[shareId];
+    if (!share) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Share not found' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify({
+      share_id: shareId,
+      path: share.path,
+      type: share.type,
+      download_count: share.stats?.download_count || 0,
+      max_downloads: share.settings?.max_downloads || null,
+      remaining: share.settings?.max_downloads ? share.settings.max_downloads - (share.stats?.download_count || 0) : null,
+      share_url: `http://${req.headers.host}/s/${shareId}`
+    }));
+    return;
+  }
+  // ========== 统计 API 结束 ==========
+
+
   res.writeHead(404);
   res.end('Not found');
 });
