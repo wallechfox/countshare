@@ -344,7 +344,7 @@ const server = http.createServer(async (req, res) => {
           <li>📁 支持文件夹打包下载（自动 zip 压缩）</li>
           <li>⚙️ 管理面板集中管理所有分享和下载记录</li>
         </ul>
-        <div class="footer">CountShare v2.0 · 纯 Node.js 实现 · 零依赖</div>
+        <div class="footer">CountShare v2.2 · 纯 Node.js 实现 · 零依赖</div>
       </div>
       </body>
       </html>
