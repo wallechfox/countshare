@@ -156,7 +156,7 @@ CountShare v2.1 新增了只读的统计 API，方便你在同服务器的其他
 |------|------|----------|
 | `GET /api/stats/total` | 获取总下载次数 | `{"total_downloads": 42}` |
 | `GET /api/stats` | 获取所有分享的统计 | 包含每个分享的下载次数、剩余次数等 |
-| `GET /api/stats/:shareId` | 获取单个分享的统计 | 包含文件名、下载次数、分享链接等 |
+| `GET /api/stats/shareId` | 获取单个分享的统计 | 包含文件名、下载次数、分享链接等 |
 
 ### 鉴权方式
 
