@@ -126,7 +126,7 @@ tbody tr:hover { background:#e9ecef; }
       </h3>
       <div class="table-wrap" style="max-height:280px;">
         <table>
-          <thead><tr><th>时间</th><th>文件</th><th>IP</th><th>UA</th></tr></thead>
+          <thead><tr><th>时间</th><th>文件</th><th>访客IP</th><th>直连IP</th><th>代理链</th><th>UA</th></tr></thead>
           <tbody id="logListBody"></tbody>
         </table>
       </div>
@@ -148,7 +148,7 @@ function getFileName(fullPath) {
 function formatSize(bytes) {
   if (!bytes) return '-';
   if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/1024/1024).toFixed(1) + ' MB';
 }
 function formatTime(iso) {
@@ -287,7 +287,7 @@ function showShareDialog(path, type) {
     btn.addEventListener('click', () => {
       const days = parseInt(btn.dataset.days);
       const now = new Date();
-      const beijing = new Date(now.getTime() + 8*3600*1000);
+      const beijing = new Date(now.getTime() + 8 * 3600 * 1000);
       beijing.setDate(beijing.getDate() + days);
       const year = beijing.getUTCFullYear();
       const month = String(beijing.getUTCMonth()+1).padStart(2,'0');
@@ -574,18 +574,20 @@ function renderLogs() {
   const tbody = document.getElementById('logListBody');
   tbody.innerHTML = '';
   if (allLogs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;">暂无记录</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">暂无记录</td></tr>';
     return;
   }
   const limited = allLogs.slice(0, 100);
   for (const log of limited) {
     const tr = document.createElement('tr');
-	tr.innerHTML = `
-	  <td>${formatTime(log.time)}</td>
-	  <td>${escapeHtml(getFileName(log.path))}</td>
-	  <td>${escapeHtml(log.ip)}</td>
-	  <td>${escapeHtml(log.ua ? log.ua.substring(0,40) : '')}</td>
-	`;
+    tr.innerHTML = `
+      <td>${formatTime(log.time)}</td>
+      <td>${escapeHtml(getFileName(log.path))}</td>
+      <td>${escapeHtml(log.ip || '-')}</td>
+      <td>${escapeHtml(log.direct_ip || '-')}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(log.forwarded_for || '')}">${escapeHtml(log.forwarded_for ? (log.forwarded_for.length > 24 ? log.forwarded_for.substring(0,24)+'…' : log.forwarded_for) : '-')}</td>
+      <td>${escapeHtml(log.ua ? log.ua.substring(0,40) : '')}</td>
+    `;
     tbody.appendChild(tr);
   }
 }
