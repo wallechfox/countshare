@@ -2,7 +2,7 @@
 
 一个极简的文件分享工具：上传文件或文件夹到服务器，生成分享链接，别人下载后你能看到下载次数和访问者信息。无需登录，无需数据库，单容器轻量部署。
 
-![CountShare](https://img.shields.io/badge/CountShare-v2.3-blue) ![Docker Pulls](https://img.shields.io/badge/Registry-Docker%20Hub-blue) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![CountShare](https://img.shields.io/badge/CountShare-v2.3-blue) ![Docker Hub](https://img.shields.io/badge/Registry-docker.io-blue) ![GHCR](https://img.shields.io/badge/Registry-ghcr.io-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## ✨ 功能特性
 
@@ -302,15 +302,18 @@ A：程序已内置北京时间（+8h）修正。如仍有问题请提交 Issue�
 
 **Q：国内服务器拉取镜像慢？**
 
-A：本项目已同步发布到 **Docker Hub**（`wallechfox/countshare:latest`），国内拉取速度通常优于 GHCR，推荐优先使用。如仍需 GHCR，可使用南京大学镜像站加速：
-
-```bash
+A：推荐从 Docker Hub 拉取（`wallechfox/countshare:latest`）。如 Docker Hub 访问受限，可使用 GHCR 备选：
+\`\`\`bash
+docker pull ghcr.io/wallechfox/countshare:latest
+\`\`\`
+或使用公共加速前缀：
+\`\`\`bash
 docker pull ghcr.nju.edu.cn/wallechfox/countshare:latest
-```
+\`\`\`
 
-**Q：GitHub 更新后 Docker Hub 会自动同步吗？**
+**Q：GitHub 推送代码后，Docker Hub 镜像会自动更新吗？**
 
-A：会的。本项目已将 GitHub 账号与 Docker Hub 账号绑定，**推送到 GitHub 后镜像会自动同步到 Docker Hub**，无需手动操作。所以 `docker pull wallechfox/countshare:latest` 拿到的始终是最新版本。
+A：是的。仓库已配置 GitHub Actions 工作流（`docker-publish.yml`），每次 push 到 `main` 分支时，会自动构建并推送镜像到 Docker Hub。同时 `build.yml` 会同步推送到 GHCR，两个 registry 都会更新。
 
 **Q：如何查看随机生成的管理页地址？**
 
