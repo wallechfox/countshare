@@ -196,12 +196,28 @@ function deleteShareByPath(targetPath) {
   return found;
 }
 
-function addLog(shareId, relPath, ip, ua) {
+// 从请求中解析三个 IP 字段：
+//   ip            —— 最终判定给用户的访客 IP（优先 X-Forwarded-For 链最左侧，兜底直连 IP）
+//   direct_ip     —— TCP 直连对端 IP（经 Nginx 反代时为 Nginx 的 IP，如 127.0.0.1）
+//   forwarded_for —— 完整代理链，方便排查与回溯（未经过代理则为空字符串）
+function parseIpFields(req) {
+  const clean = (ip) => (ip || '').replace(/^::ffff:/, '').trim();
+  const directIp = clean(req.socket.remoteAddress || req.connection.remoteAddress);
+  const forwardedFor = (req.headers['x-forwarded-for'] || '').trim();
+  // X-Forwarded-For 格式：客户端IP, 代理1IP, 代理2IP，最左侧为原始客户端 IP
+  const clientIp = clean(forwardedFor.split(',')[0]) || directIp;
+  return { ip: clientIp, direct_ip: directIp, forwarded_for: forwardedFor };
+}
+
+function addLog(shareId, relPath, req, ua) {
+  const { ip, direct_ip, forwarded_for } = parseIpFields(req);
   data.logs.push({
     time: new Date().toISOString(),
     shareId,
     path: relPath,
-    ip: ip || '',
+    ip,
+    direct_ip,
+    forwarded_for,
     ua: ua || ''
   });
   saveData();
@@ -330,7 +346,9 @@ const server = http.createServer(async (req, res) => {
         .sub { color:#666; font-size:16px; margin-bottom:20px; }
         ul { text-align:left; line-height:1.8; color:#444; }
         li { margin:8px 0; }
-        .footer { margin-top:24px; color:#999; font-size:14px; border-top:1px solid #eee; padding-top:16px; }
+        .footer { margin-top:24px; color:#999; font-size:14px; line-height:1.7; border-top:1px solid #eee; padding-top:16px; }
+        .footer a { color:#666; }
+        .footer a:hover { color:#333; text-decoration:underline; }
       </style>
       </head>
       <body>
@@ -344,7 +362,10 @@ const server = http.createServer(async (req, res) => {
           <li>📁 支持文件夹打包下载（自动 zip 压缩）</li>
           <li>⚙️ 管理面板集中管理所有分享和下载记录</li>
         </ul>
-        <div class="footer">CountShare v2.2 · 纯 Node.js 实现 · 零依赖</div>
+        <div class="footer">
+          CountShare v2.3 · 纯 Node.js 实现 · 零依赖<br>
+          <a href="https://github.com/wallechfox/countshare" target="_blank" rel="noopener noreferrer">⭐ GitHub 开源地址</a>
+        </div>
       </div>
       </body>
       </html>
@@ -434,7 +455,8 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
-
+  
+  
   // ----- 下载单个文件 (/download/{shareId}?file=路径) -----
   const downloadMatch = pathname.match(/^\/download\/([a-f0-9]{6})$/);
   if (downloadMatch) {
@@ -491,7 +513,7 @@ const server = http.createServer(async (req, res) => {
     // 更新计数
     stats.download_count = (stats.download_count || 0) + 1;
     saveData();
-    addLog(shareId, targetPath, req.socket.remoteAddress, req.headers['user-agent']);
+    addLog(shareId, targetPath, req, req.headers['user-agent']);
 
     // 返回文件
     const fullPath = safePath(FILES_DIR, targetPath);
@@ -555,7 +577,7 @@ const server = http.createServer(async (req, res) => {
 
     stats.download_count = (stats.download_count || 0) + 1;
     saveData();
-    addLog(shareId, share.path, req.socket.remoteAddress, req.headers['user-agent']);
+    addLog(shareId, share.path, req, req.headers['user-agent']);
 
     const stat = fs.statSync(zipPath);
     const encodedName = encodeURIComponent(path.basename(share.path) + '.zip');
@@ -869,7 +891,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ========== 统计 API（供外部调用） ==========
+// ========== 统计 API（供外部调用） ==========
   
   // --- /api/stats/total（总下载次数） ---
   if (pathname === '/api/stats/total' && method === 'GET') {
