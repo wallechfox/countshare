@@ -67,6 +67,7 @@ tbody tr:hover { background:#e9ecef; }
 .modal .quick button { padding:2px 8px; background:#e9ecef; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-size:12px; }
 
 @media (max-width:768px) { .two-col { flex-direction:column; } }
+#logPagination button:disabled { cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -139,6 +140,10 @@ tbody tr:hover { background:#e9ecef; }
 let currentDir = '';          // 当前浏览的相对路径
 let allShares = [];
 let allLogs = [];
+
+let logTotal = 0;       // 后端返回的总记录数
+let logCurrentPage = 1;
+let logPageSize = 50;
 
 function getFileName(fullPath) {
   if (!fullPath) return '';
@@ -562,11 +567,17 @@ document.addEventListener('change', (e) => {
 
 // ------------------- 下载记录 -------------------
 async function loadLogs(filterShareId = '') {
-  const url = filterShareId ? `/api/logs?shareId=${filterShareId}` : '/api/logs';
-  const res = await fetch(url);
+  const params = new URLSearchParams();
+  if (filterShareId) params.set('shareId', filterShareId);
+  params.set('page', String(logCurrentPage));
+  params.set('size', String(logPageSize));
+  const res = await fetch('/api/logs?' + params.toString());
   const data = await res.json();
   if (!data.success) return;
-  allLogs = data.logs;
+  allLogs = data.logs || [];
+  // 优先用后端总数，兼容旧版后端没返回 total 的情况
+  logTotal = data.total != null ? data.total : allLogs.length;
+  // 兜底：若后端没返回 total 且是本页全量，用数组长度（一般不应走到）
   renderLogs();
 }
 
@@ -575,10 +586,10 @@ function renderLogs() {
   tbody.innerHTML = '';
   if (allLogs.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">暂无记录</td></tr>';
+    renderLogPagination();
     return;
   }
-  const limited = allLogs.slice(0, 100);
-  for (const log of limited) {
+  for (const log of allLogs) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${formatTime(log.time)}</td>
@@ -586,10 +597,50 @@ function renderLogs() {
       <td>${escapeHtml(log.ip || '-')}</td>
       <td>${escapeHtml(log.direct_ip || '-')}</td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(log.forwarded_for || '')}">${escapeHtml(log.forwarded_for ? (log.forwarded_for.length > 24 ? log.forwarded_for.substring(0,24)+'…' : log.forwarded_for) : '-')}</td>
-      <td>${escapeHtml(log.ua ? log.ua.substring(0,40) : '')}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(log.ua || '')}">${escapeHtml(log.ua || '')}</td>
     `;
     tbody.appendChild(tr);
   }
+  renderLogPagination();
+}
+
+function renderLogPagination() {
+  let container = document.getElementById('logPagination');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'logPagination';
+    container.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px;font-size:13px;flex-wrap:wrap;';
+    const wrap = document.querySelector('#logListBody').closest('.table-wrap');
+    wrap.parentNode.insertBefore(container, wrap.nextSibling);
+  }
+  const totalPages = Math.max(1, Math.ceil(logTotal / logPageSize));
+  if (logCurrentPage > totalPages) logCurrentPage = totalPages;
+  container.innerHTML = `
+    <label style="display:flex;align-items:center;gap:4px;">
+      每页
+      <select id="logPageSizeSelect" style="padding:2px 4px;border-radius:4px;border:1px solid #ddd;">
+        <option ${logPageSize===50?'selected':''}>50</option>
+        <option ${logPageSize===100?'selected':''}>100</option>
+        <option ${logPageSize===200?'selected':''}>200</option>
+      </select>
+      条
+    </label>
+    <button class="btn-sm" id="logFirstBtn" ${logCurrentPage===1?'disabled style="opacity:0.4;"':''}>⏮ 首页</button>
+    <button class="btn-sm" id="logPrevBtn" ${logCurrentPage===1?'disabled style="opacity:0.4;"':''}>← 上一页</button>
+    <span style="color:#666;">第 ${logCurrentPage} / ${totalPages} 页（共 ${logTotal} 条）</span>
+    <button class="btn-sm" id="logNextBtn" ${logCurrentPage===totalPages?'disabled style="opacity:0.4;"':''}>下一页 →</button>
+    <button class="btn-sm" id="logLastBtn" ${logCurrentPage===totalPages?'disabled style="opacity:0.4;"':''}>末页 ⏭</button>
+  `;
+  container.querySelector('#logPageSizeSelect').addEventListener('change', (e) => {
+    logPageSize = parseInt(e.target.value, 10);
+    logCurrentPage = 1;
+    const filter = document.getElementById('logFilter').value;
+    loadLogs(filter);
+  });
+  container.querySelector('#logFirstBtn').addEventListener('click', () => { if (logCurrentPage!==1){logCurrentPage=1;loadLogs(document.getElementById('logFilter').value);} });
+  container.querySelector('#logPrevBtn').addEventListener('click', () => { if (logCurrentPage>1){logCurrentPage--;loadLogs(document.getElementById('logFilter').value);} });
+  container.querySelector('#logNextBtn').addEventListener('click', () => { const tp=Math.ceil(logTotal/logPageSize); if (logCurrentPage<tp){logCurrentPage++;loadLogs(document.getElementById('logFilter').value);} });
+  container.querySelector('#logLastBtn').addEventListener('click', () => { const tp=Math.ceil(logTotal/logPageSize); if (logCurrentPage!==tp){logCurrentPage=tp;loadLogs(document.getElementById('logFilter').value);} });
 }
 
 function updateLogFilter() {
@@ -653,13 +704,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('refreshBtn').addEventListener('click', refreshAll);
   document.getElementById('batchCancelBtn').addEventListener('click', batchCancel);
   document.getElementById('refreshSharesBtn').addEventListener('click', loadShares);
-  document.getElementById('refreshLogsBtn').addEventListener('click', () => {
-    const filter = document.getElementById('logFilter').value;
-    loadLogs(filter);
-  });
-  document.getElementById('logFilter').addEventListener('change', (e) => {
-    loadLogs(e.target.value);
-  });
+document.getElementById('refreshLogsBtn').addEventListener('click', () => {
+  loadLogs(document.getElementById('logFilter').value);
+});
+document.getElementById('logFilter').addEventListener('change', (e) => {
+  logCurrentPage = 1;
+  loadLogs(e.target.value);
+});
 
   refreshAll();
 });
