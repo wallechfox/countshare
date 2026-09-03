@@ -880,14 +880,27 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/logs' && method === 'GET') {
-    const shareId = urlObj.searchParams.get('shareId') || null;
+	const shareId = urlObj.searchParams.get('shareId') || '';
+    const page = Math.max(1, parseInt(urlObj.searchParams.get('page') || '1', 10));
+    const size = Math.max(1, Math.min(500, parseInt(urlObj.searchParams.get('size') || '50', 10)));
+
     let logs = data.logs;
-    if (shareId) {
-      logs = logs.filter(l => l.shareId === shareId);
-    }
-    logs.sort((a, b) => new Date(b.time) - new Date(a.time));
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, logs }));
+    if (shareId) logs = logs.filter(l => l.shareId === shareId);
+
+    // 最新的在前
+    logs = logs.slice().sort((a, b) => (a.time < b.time ? 1 : -1));
+
+    const total = logs.length;
+    const start = (page - 1) * size;
+    const paged = logs.slice(start, start + size);
+
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'X-Total-Count': String(total),
+      'X-Page': String(page),
+      'X-Page-Size': String(size)
+    });
+    res.end(JSON.stringify({ success: true, logs: paged, total, page, size }));
     return;
   }
 
