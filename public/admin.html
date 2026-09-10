@@ -436,7 +436,8 @@ function renderShares() {
       <td>${hasPwd}</td>
       <td>${escapeHtml(expireDisplay)}</td>
       <td>${downloadDisplay}</td>
-      <td>
+	<td>
+        <button class="btn-sm btn-open" data-shareid="${s.shareId}" style="background:#17a2b8;color:#fff;">↗ 打开</button>
         <button class="btn-sm btn-copy" data-shareid="${s.shareId}" style="background:#007bff;color:#fff;">🔗 复制</button>
         <button class="btn-sm btn-edit" data-shareid="${s.shareId}">设置</button>
         <button class="btn-sm btn-cancel-share" data-shareid="${s.shareId}">取消</button>
@@ -444,6 +445,14 @@ function renderShares() {
     `;
     tbody.appendChild(tr);
   }
+  
+  // 新窗口打开分享链接
+  tbody.querySelectorAll('.btn-open').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const url = window.location.origin + '/s/' + this.dataset.shareid;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+  });
 
 // 复制链接（不弹窗，按钮变绿）—— 兼容 HTTP / HTTPS
   async function copyToClipboard(text) {
