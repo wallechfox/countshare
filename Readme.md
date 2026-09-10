@@ -1,8 +1,8 @@
-# CountShare 极简文件分享 V2.4
+# CountShare 极简文件分享 V2.5
 
 一个极简的文件分享工具：上传文件或文件夹到服务器，生成分享链接，别人下载后你能看到下载次数和访问者信息。无需登录，无需数据库，单容器轻量部署。
 
-![CountShare](https://img.shields.io/badge/CountShare-v2.4-blue) ![Docker Hub](https://img.shields.io/badge/Registry-docker.io-blue) ![GHCR](https://img.shields.io/badge/Registry-ghcr.io-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![CountShare](https://img.shields.io/badge/CountShare-v2.5-blue) ![Docker Hub](https://img.shields.io/badge/Registry-docker.io-blue) ![GHCR](https://img.shields.io/badge/Registry-ghcr.io-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## ✨ 功能特性
 
@@ -12,6 +12,7 @@
 - **下载计数**：实时记录每个分享项的下载次数
 - **访问明细（v2.3 增强）**：同时记录**访客 IP、直连 IP、完整代理链、浏览器型号、下载时间（北京时间）**，完美兼容直连与 Nginx 反代环境
 - **下载记录后端分页（v2.4 新增）**：下载记录改为后端分页，支持每页 50 / 100 / 200 条切换，可翻页浏览任意历史记录；前端不再一次性加载全量数据，轻松应对上万条记录，便于后续扩展
+- **分享链接一键打开（v2.5 新增）**：分享列表每个分享项新增「↗ 打开」按钮，点击即在新标签页打开分享页面，方便快速预览/测试分享链接是否有效（有无密码、是否过期、文件是否正常）
 - **隐藏管理页**：通过随机/自定义路径访问管理面板
 - **文件管理器**：在管理页直接上传文件、新建文件夹、重命名、删除
 - **密码保护**：可为文件或文件夹设置访问密码，支持服务端验证
@@ -147,6 +148,7 @@ docker logs countshare
 
 - **查看所有分享**：列表显示路径、状态（正常/已过期/次数用尽）、是否有密码、有效期、下载情况
 - **复制链接**：点击「复制」按钮，链接会自动复制到剪贴板（v2.2 起兼容 HTTP / HTTPS 环境）
+- **打开链接**：点击「↗ 打开」按钮，会在**新标签页**中打开该分享的访问页面，便于预览和调试（链接使用 `noopener,noreferrer`，不会反向影响管理页）
 - **修改设置**：点击「设置」按钮，可修改密码、有效期、最大下载次数
 - **取消分享**：点击「取消」按钮，该分享链接将立即失效
 - **批量取消**：勾选多个分享项，点击「批量取消」一次性取消多个分享
@@ -316,6 +318,7 @@ fetch('https://your-domain.com:8000/api/stats/total', {
 - **（v2.1）** 通过 API 将下载次数集成到自己的网站或监控面板中
 - **（v2.3）** 经 Nginx 反代部署，借助三 IP 记录精准识别真实访客与代理链路
 - **（v2.4）** 下载记录海量时，借助后端分页顺畅翻页查阅任意历史
+- **（v2.5）** 管理页一键预览任意分享链接的实际访问效果，调试更顺手
 - 任何不需要复杂权限管理的文件分享需求
 
 ## 🔒 安全说明
@@ -328,6 +331,7 @@ fetch('https://your-domain.com:8000/api/stats/total', {
 - **统计 API 支持 Token 鉴权**：设置 `API_TOKEN` 后，只有持有 Token 的调用方才能读取统计数据
 - **X-Forwarded-For 可信链**：`ip` 取 `forwarded_for` 最左值，**仅在可信反代后安全**。若 CountShare 同时可被公网直连，恶意客户端可伪造该头；建议上 Nginx 后仅对可信代理解析。详情见 [UPGRADE-v2.2-to-v2.3.md](UPGRADE-v2.2-to-v2.3.md)
 - **分页接口防护**：`/api/logs` 的 `size` 参数上限为 500，防止一次性拉取过量数据导致内存压力
+- **新窗口打开防反向操控**：「打开」按钮使用 `window.open(url, '_blank', 'noopener,noreferrer')`，新页面无法通过 `window.opener` 操控管理页
 - 所有配置和日志集中在 `data.json`，便于备份和管理
 
 ## 🐛 常见问题
@@ -378,6 +382,10 @@ A：不会。`data.json` 结构完全兼容，v2.4 只是改变了读取和展�
 **Q：如何更新到最新版本？**
 
 A：见 [UPGRADE.md](UPGRADE.md) 升级说明。
+
+**Q：分享列表里新增的「↗ 打开」按钮是干什么的？**
+
+A：点击后会在浏览器新标签页中直接打开该分享的访问页面（等同于普通访客访问 `/s/xxx`）。常用于快速预览/调试——确认密码是否生效、链接是否过期、文件能否正常下载，无需再手动复制链接粘贴到地址栏。打开方式采用 `noopener,noreferrer`，对管理页无安全风险。
 
 ## 📜 开源协议
 
